@@ -112,6 +112,8 @@ int32_t gps_app(void* p)
             case InputKeyBack:
               processing = false;
               break;
+            default:
+              break;
           }
         }
       }
