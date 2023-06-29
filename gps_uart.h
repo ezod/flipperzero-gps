@@ -2,6 +2,7 @@
 
 #include <furi_hal.h>
 #include <notification/notification_messages.h>
+#include <gui/icon_animation.h>
 
 #define RX_BUF_SIZE 1024
 
@@ -36,6 +37,7 @@ typedef struct {
     bool speed_in_kms;
 
     GpsStatus status;
+    IconAnimation* Icon;
 } GpsUart;
 
 void gps_uart_init_thread(GpsUart* gps_uart);

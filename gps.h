@@ -1,79 +1,41 @@
+#include <gui/gui.h>
 
+enum CoordinateSystem { CS_LatLong = 0, CS_UTM = 1, CS_MGRS = 2, CS_MAX = 3 };
 
-struct canvas_coordinates {
+struct CanvasElement {
     int x;
 
     int y;
 
     const char* str;
-} latitude_header_coordinates, longitude_header_coordinates, course_header_coordinates,
-    speed_header_coordinates, altitude_header_coordinates, satellites_header_coordinates,
-    lastFix_header_coordinates, latitude_value_coordinates, longitude_value_coordinates,
-    course_value_coordinates, speed_value_coordinates, altitude_value_coordinates,
-    satellites_value_coordinates, lastfix_value_coordinates;
+} LatitudeHeaderElement, LongitudeHeaderElement, CourseHeaderElement, SpeedHeaderElement,
+    AltitudeHeaderElement, SatellitesHeaderElement, LastFixHeaderElement, LatitudeValueElement,
+    LongitudeValueElement, CourseValueElement, SpeedValueElement, AltitudeValueElement,
+    SatellitesValueElement, LastfixValueElement, UTMZoneHeaderElement, UTMNorthingHeaderElement,
+    UTMEastingHeaderElement, UTMZoneValueElement, UTMNorthingValueElement, UTMEastingValueElement;
 
-static void setup_canvas_coordinates() {
-    latitude_header_coordinates.x = 2;
-    latitude_header_coordinates.y = 8;
-    latitude_header_coordinates.str = "Latitude";
+enum CoordinateSystem coordinateSystem = CS_LatLong;
 
-    // longitude_header_coordinates.x = 96;
-    // longitude_header_coordinates.y = 8;
-    longitude_header_coordinates.x = 2;
-    longitude_header_coordinates.y = 18;
-    longitude_header_coordinates.str = "Longitude:";
+void SetupCanvasElements();
 
-    course_header_coordinates.x = 2;
-    course_header_coordinates.y = 30;
-    course_header_coordinates.str = "Course";
+void DrawCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    speed_header_coordinates.x = 64;
-    speed_header_coordinates.y = 30;
-    speed_header_coordinates.str = "Speed";
+void DrawLatLongCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    altitude_header_coordinates.x = 107;
-    altitude_header_coordinates.y = 30;
-    altitude_header_coordinates.str = "Altitude";
+void DrawUTMCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    satellites_header_coordinates.x = 32;
-    satellites_header_coordinates.y = 52;
-    satellites_header_coordinates.str = "Satellites";
+void DrawCourseElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    lastFix_header_coordinates.x = 96;
-    lastFix_header_coordinates.y = 52;
-    lastFix_header_coordinates.str = "Last Fix";
+void DrawSpeedElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    // latitude_value_coordinates.x = 32;
-    // latitude_value_coordinates.y = 18;
-    latitude_value_coordinates.x = 80;
-    latitude_value_coordinates.y = 8;
-    latitude_value_coordinates.str = "Latitude:";
+void DrawAltitudeElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    // longitude_value_coordinates.x = 96;
-    // longitude_value_coordinates.y = 18;
-    longitude_value_coordinates.x = 85;
-    longitude_value_coordinates.y = 18;
-    longitude_value_coordinates.str = "Longitude";
+void DrawSatelliteElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    course_value_coordinates.x = 21;
-    course_value_coordinates.y = 40;
-    course_value_coordinates.str = "Course";
+void DrawLastFixElements(Canvas* const canvas, GpsUart* gps_uart);
 
-    speed_value_coordinates.x = 64;
-    speed_value_coordinates.y = 40;
-    speed_value_coordinates.str = "Speed";
+void DrawAcquiringFix(Canvas* const canvas, GpsUart* gps_uart);
 
-    altitude_value_coordinates.x = 107;
-    altitude_value_coordinates.y = 40;
-    altitude_value_coordinates.str = "Altitude";
+void DrawAcquiredFix(Canvas* const canvas);
 
-    satellites_value_coordinates.x = 32;
-    satellites_value_coordinates.y = 62;
-    satellites_value_coordinates.str = "Satellites";
-
-    lastfix_value_coordinates.x = 96;
-    lastfix_value_coordinates.y = 62;
-    lastfix_value_coordinates.str = "Last Fix";
-};
-
-// struct canvas_coordinates CanvasCoordinateArray[14] = {latitude_header_coordinates};
+void IncrementCoordinateSystem();

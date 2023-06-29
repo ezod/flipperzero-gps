@@ -1,5 +1,8 @@
 #include "gps_uart.h"
 #include "gps.h"
+#include "LatLong-UTMconversion.h"
+#include <assets_icons.h>
+#include <gps_nmea_icons.h>
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -15,159 +18,285 @@ typedef struct {
     InputEvent input;
 } PluginEvent;
 
-static void draw_headers(Canvas* const canvas) {
-    canvas_set_font(canvas, FontPrimary);
-
-    // canvas_draw_str_aligned(
-    //     canvas,
-    //     latitude_header_coordinates.x,
-    //     latitude_header_coordinates.y,
-    //     AlignCenter,
-    //     AlignBottom,
-    //     latitude_header_coordinates.str);
-
-    // canvas_draw_str_aligned(
-    //     canvas,
-    //     longitude_header_coordinates.x,
-    //     longitude_header_coordinates.y,
-    //     AlignCenter,
-    //     AlignBottom,
-    //     longitude_header_coordinates.str);
-
-    canvas_draw_str(
-        canvas,
-        latitude_header_coordinates.x,
-        latitude_header_coordinates.y,
-        latitude_header_coordinates.str);
-    canvas_draw_str(
-        canvas,
-        longitude_header_coordinates.x,
-        longitude_header_coordinates.y,
-        longitude_header_coordinates.str);
-
-    canvas_draw_str_aligned(
-        canvas,
-        course_header_coordinates.x,
-        course_header_coordinates.y,
-        AlignCenter,
-        AlignBottom,
-        course_header_coordinates.str);
-
-    canvas_draw_str_aligned(
-        canvas,
-        speed_header_coordinates.x,
-        speed_header_coordinates.y,
-        AlignCenter,
-        AlignBottom,
-        speed_header_coordinates.str);
-
-    canvas_draw_str_aligned(
-        canvas,
-        altitude_header_coordinates.x,
-        altitude_header_coordinates.y,
-        AlignCenter,
-        AlignBottom,
-        altitude_header_coordinates.str);
-
-    canvas_draw_str_aligned(
-        canvas,
-        satellites_header_coordinates.x,
-        satellites_header_coordinates.y,
-        AlignCenter,
-        AlignBottom,
-        satellites_header_coordinates.str);
-
-    canvas_draw_str_aligned(
-        canvas,
-        lastFix_header_coordinates.x,
-        lastFix_header_coordinates.y,
-        AlignCenter,
-        AlignBottom,
-        lastFix_header_coordinates.str);
+void DrawCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart) {
+    switch(coordinateSystem) {
+    case CS_LatLong: {
+        DrawLatLongCoordinatesElements(canvas, gps_uart);
+        break;
+    }
+    case CS_UTM: {
+        DrawUTMCoordinatesElements(canvas, gps_uart);
+        break;
+    }
+    case CS_MGRS:
+    case CS_MAX:
+    default: {
+        break;
+    }
+    };
 };
 
-static void draw_values(Canvas* const canvas, GpsUart* gps_uart) {
+void DrawLatLongCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Headers
+    canvas_set_font(canvas, FontPrimary);
+
+    canvas_draw_str_aligned(
+        canvas,
+        LatitudeHeaderElement.x,
+        LatitudeHeaderElement.y,
+        AlignCenter,
+        AlignBottom,
+        LatitudeHeaderElement.str);
+
+    canvas_draw_str_aligned(
+        canvas,
+        LongitudeHeaderElement.x,
+        LongitudeHeaderElement.y,
+        AlignCenter,
+        AlignBottom,
+        LongitudeHeaderElement.str);
+
+    // Values
+    canvas_set_font(canvas, FontSecondary);
+    char buffer[64];
+
+    if(isnan(gps_uart->status.latitude)) {
+        LatitudeValueElement.str = "0.0";
+    } else {
+        snprintf(buffer, 64, "%f", (double)gps_uart->status.latitude);
+        LatitudeValueElement.str = buffer;
+    }
+
+    canvas_draw_str_aligned(
+        canvas,
+        LatitudeValueElement.x,
+        LatitudeValueElement.y,
+        AlignCenter,
+        AlignBottom,
+        LatitudeValueElement.str);
+
+    if(isnan(gps_uart->status.longitude)) {
+        LongitudeValueElement.str = "0.0";
+    } else {
+        snprintf(buffer, 64, "%f", (double)gps_uart->status.longitude);
+        LongitudeValueElement.str = buffer;
+    }
+
+    canvas_draw_str_aligned(
+        canvas,
+        LongitudeValueElement.x,
+        LongitudeValueElement.y,
+        AlignCenter,
+        AlignBottom,
+        LongitudeValueElement.str);
+};
+
+void DrawUTMCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Headers
+    canvas_set_font(canvas, FontPrimary);
+
+    canvas_draw_str_aligned(
+        canvas,
+        UTMZoneHeaderElement.x,
+        UTMZoneHeaderElement.y,
+        AlignLeft,
+        AlignBottom,
+        UTMZoneHeaderElement.str);
+
+    canvas_draw_str_aligned(
+        canvas,
+        UTMNorthingHeaderElement.x,
+        UTMNorthingHeaderElement.y,
+        AlignLeft,
+        AlignBottom,
+        UTMNorthingHeaderElement.str);
+
+    canvas_draw_str_aligned(
+        canvas,
+        UTMEastingHeaderElement.x,
+        UTMEastingHeaderElement.y,
+        AlignRight,
+        AlignBottom,
+        UTMEastingHeaderElement.str);
+
+    // Values
     canvas_set_font(canvas, FontSecondary);
 
     char buffer[64];
-    // latitude
-    snprintf(buffer, 64, "%f", (double)gps_uart->status.latitude);
-    latitude_value_coordinates.str = buffer;
+
+    if(isnan(gps_uart->status.latitude) || isnan(gps_uart->status.longitude)) {
+        UTMZoneValueElement.str = "00";
+        UTMNorthingValueElement.str = "0000000";
+        UTMEastingValueElement.str = "0000000";
+    } else {
+        // Convert from LatLong to UTM
+        struct UTM utm = LLtoUTM(23, gps_uart->status.latitude, gps_uart->status.longitude);
+
+        UTMZoneValueElement.str = &utm.Zone;
+
+        snprintf(buffer, 64, "%i", (int)(utm.Northing));
+        UTMNorthingValueElement.str = buffer;
+
+        snprintf(buffer, 64, "%i", (int)(utm.Easting));
+        UTMEastingValueElement.str = buffer;
+    }
+
     canvas_draw_str_aligned(
         canvas,
-        latitude_value_coordinates.x,
-        latitude_value_coordinates.y,
+        UTMZoneValueElement.x,
+        UTMZoneValueElement.y,
         AlignCenter,
         AlignBottom,
-        latitude_value_coordinates.str);
+        UTMZoneValueElement.str);
 
-    // longitude
-    snprintf(buffer, 64, "%f", (double)gps_uart->status.longitude);
-    longitude_value_coordinates.str = buffer;
     canvas_draw_str_aligned(
         canvas,
-        longitude_value_coordinates.x,
-        longitude_value_coordinates.y,
+        UTMNorthingValueElement.x,
+        UTMNorthingValueElement.y,
         AlignCenter,
         AlignBottom,
-        longitude_value_coordinates.str);
+        UTMNorthingValueElement.str);
 
-    // course
+    canvas_draw_str_aligned(
+        canvas,
+        UTMEastingValueElement.x,
+        UTMEastingValueElement.y,
+        AlignRight,
+        AlignBottom,
+        UTMEastingValueElement.str);
+};
+
+void DrawCourseElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Header
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas,
+        CourseHeaderElement.x,
+        CourseHeaderElement.y,
+        AlignCenter,
+        AlignBottom,
+        CourseHeaderElement.str);
+
+    // Value
+    char buffer[64];
+    canvas_set_font(canvas, FontSecondary);
     snprintf(buffer, 64, "%.1f", (double)gps_uart->status.course);
-    course_value_coordinates.str = buffer;
+    CourseValueElement.str = buffer;
     canvas_draw_str_aligned(
         canvas,
-        course_value_coordinates.x,
-        course_value_coordinates.y,
+        CourseValueElement.x,
+        CourseValueElement.y,
         AlignCenter,
         AlignBottom,
-        course_value_coordinates.str);
+        CourseValueElement.str);
+};
 
-    // speed
+void DrawSpeedElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Header
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas,
+        SpeedHeaderElement.x,
+        SpeedHeaderElement.y,
+        AlignCenter,
+        AlignBottom,
+        SpeedHeaderElement.str);
+
+    // Value
+    canvas_set_font(canvas, FontSecondary);
+    char buffer[64];
+
     if(!gps_uart->speed_in_kms) {
         snprintf(buffer, 64, "%.2f kn", (double)gps_uart->status.speed);
     } else {
         snprintf(buffer, 64, "%.2f km", (double)(gps_uart->status.speed * 1.852));
     }
 
-    speed_value_coordinates.str = buffer;
+    SpeedValueElement.str = buffer;
     canvas_draw_str_aligned(
         canvas,
-        speed_value_coordinates.x,
-        speed_value_coordinates.y,
+        SpeedValueElement.x,
+        SpeedValueElement.y,
         AlignCenter,
         AlignBottom,
-        speed_value_coordinates.str);
+        SpeedValueElement.str);
+};
 
-    // altitude
-    snprintf(
-        buffer,
-        64,
-        "%.1f %c",
-        (double)gps_uart->status.altitude,
-        tolower(gps_uart->status.altitude_units));
-
-    altitude_value_coordinates.str = buffer;
+void DrawAltitudeElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Header
+    canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(
         canvas,
-        altitude_value_coordinates.x,
-        altitude_value_coordinates.y,
+        AltitudeHeaderElement.x,
+        AltitudeHeaderElement.y,
         AlignCenter,
         AlignBottom,
-        altitude_value_coordinates.str);
+        AltitudeHeaderElement.str);
 
-    // satellites
+    // Value
+    char buffer[64];
+    canvas_set_font(canvas, FontSecondary);
+
+    if(isnan(gps_uart->status.altitude) || gps_uart->status.altitude <= 0.0) {
+        snprintf(buffer, 64, "0 %c", tolower(gps_uart->status.altitude_units));
+    } else {
+        snprintf(
+            buffer,
+            64,
+            "%.1f %c",
+            (double)gps_uart->status.altitude,
+            tolower(gps_uart->status.altitude_units));
+    };
+
+    AltitudeValueElement.str = buffer;
+    canvas_draw_str_aligned(
+        canvas,
+        AltitudeValueElement.x,
+        AltitudeValueElement.y,
+        AlignCenter,
+        AlignBottom,
+        AltitudeValueElement.str);
+};
+
+void DrawSatelliteElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Header
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas,
+        SatellitesHeaderElement.x,
+        SatellitesHeaderElement.y,
+        AlignLeft,
+        AlignBottom,
+        SatellitesHeaderElement.str);
+
+    // Value
+    char buffer[64];
+    canvas_set_font(canvas, FontSecondary);
     snprintf(buffer, 64, "%d", gps_uart->status.satellites_tracked);
-    satellites_value_coordinates.str = buffer;
+    SatellitesValueElement.str = buffer;
     canvas_draw_str_aligned(
         canvas,
-        satellites_value_coordinates.x,
-        satellites_value_coordinates.y,
+        SatellitesValueElement.x,
+        SatellitesValueElement.y,
         AlignCenter,
         AlignBottom,
-        satellites_value_coordinates.str);
+        SatellitesValueElement.str);
+};
 
-    // last fix
+void DrawLastFixElements(Canvas* const canvas, GpsUart* gps_uart) {
+    // Header
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas,
+        LastFixHeaderElement.x,
+        LastFixHeaderElement.y,
+        AlignLeft,
+        AlignBottom,
+        LastFixHeaderElement.str);
+
+    // Value
+    char buffer[64];
+    canvas_set_font(canvas, FontSecondary);
     snprintf(
         buffer,
         64,
@@ -176,14 +305,114 @@ static void draw_values(Canvas* const canvas, GpsUart* gps_uart) {
         gps_uart->status.time_minutes,
         gps_uart->status.time_seconds);
 
-    lastfix_value_coordinates.str = buffer;
+    LastfixValueElement.str = buffer;
     canvas_draw_str_aligned(
         canvas,
-        lastfix_value_coordinates.x,
-        lastfix_value_coordinates.y,
+        LastfixValueElement.x,
+        LastfixValueElement.y,
         AlignCenter,
         AlignBottom,
-        lastfix_value_coordinates.str);
+        LastfixValueElement.str);
+};
+
+void DrawAcquiringFix(Canvas* const canvas, GpsUart* gps_uart) {
+    canvas_draw_icon_animation(canvas, 114, 52, gps_uart->Icon);
+    icon_animation_start(gps_uart->Icon);
+};
+
+void DrawAcquiredFix(Canvas* const canvas) {
+    canvas_draw_icon(canvas, 114, 52, &I_GPS_10px);
+};
+
+void SetupCanvasElements() {
+    LatitudeHeaderElement.x = 32;
+    LatitudeHeaderElement.y = 8;
+    LatitudeHeaderElement.str = "Latitude";
+
+    LongitudeHeaderElement.x = 96;
+    LongitudeHeaderElement.y = 8;
+    LongitudeHeaderElement.str = "Longitude";
+
+    UTMZoneHeaderElement.x = 2;
+    UTMZoneHeaderElement.y = 8;
+    UTMZoneHeaderElement.str = "Zone";
+
+    UTMNorthingHeaderElement.x = 32;
+    UTMNorthingHeaderElement.y = 8;
+    UTMNorthingHeaderElement.str = "Northing";
+
+    UTMEastingHeaderElement.x = 124;
+    UTMEastingHeaderElement.y = 8;
+    UTMEastingHeaderElement.str = "Easting";
+
+    CourseHeaderElement.x = 21;
+    CourseHeaderElement.y = 30;
+    CourseHeaderElement.str = "Course";
+
+    SpeedHeaderElement.x = 64;
+    SpeedHeaderElement.y = 30;
+    SpeedHeaderElement.str = "Speed";
+
+    AltitudeHeaderElement.x = 107;
+    AltitudeHeaderElement.y = 30;
+    AltitudeHeaderElement.str = "Altitude";
+
+    SatellitesHeaderElement.x = 2;
+    SatellitesHeaderElement.y = 52;
+    SatellitesHeaderElement.str = "Satellites";
+
+    LastFixHeaderElement.x = 60;
+    LastFixHeaderElement.y = 52;
+    LastFixHeaderElement.str = "Last Fix";
+
+    LatitudeValueElement.x = 32;
+    LatitudeValueElement.y = 18;
+    LatitudeValueElement.str = "Latitude:";
+
+    LongitudeValueElement.x = 96;
+    LongitudeValueElement.y = 18;
+    LongitudeValueElement.str = "Longitude";
+
+    UTMZoneValueElement.x = 10;
+    UTMZoneValueElement.y = 18;
+    UTMZoneValueElement.str = "";
+
+    UTMNorthingValueElement.x = 52;
+    UTMNorthingValueElement.y = 18;
+    UTMNorthingValueElement.str = "";
+
+    UTMEastingValueElement.x = 122;
+    UTMEastingValueElement.y = 18;
+    UTMEastingValueElement.str = "";
+
+    CourseValueElement.x = 21;
+    CourseValueElement.y = 40;
+    CourseValueElement.str = "Course";
+
+    SpeedValueElement.x = 64;
+    SpeedValueElement.y = 40;
+    SpeedValueElement.str = "Speed";
+
+    AltitudeValueElement.x = 107;
+    AltitudeValueElement.y = 40;
+    AltitudeValueElement.str = "Altitude";
+
+    SatellitesValueElement.x = 20;
+    SatellitesValueElement.y = 62;
+    SatellitesValueElement.str = "Satellites";
+
+    LastfixValueElement.x = 80;
+    LastfixValueElement.y = 62;
+    LastfixValueElement.str = "Last Fix";
+};
+
+void IncrementCoordinateSystem() {
+    ++coordinateSystem;
+
+    // TODO: once MGRS is implemented change check to CS_MAX instead of CS_MGRS
+    if(coordinateSystem == CS_MGRS) {
+        coordinateSystem = CS_LatLong;
+    }
 };
 
 static void render_callback(Canvas* const canvas, void* context) {
@@ -192,8 +421,17 @@ static void render_callback(Canvas* const canvas, void* context) {
     furi_mutex_acquire(gps_uart->mutex, FuriWaitForever);
 
     if(!gps_uart->changing_baudrate) {
-        draw_headers(canvas);
-        draw_values(canvas, gps_uart);
+        if(gps_uart->status.fix_quality <= 0) {
+            DrawAcquiringFix(canvas, gps_uart);
+        } else {
+            DrawAcquiredFix(canvas);
+        }
+        DrawCoordinatesElements(canvas, gps_uart);
+        DrawCourseElements(canvas, gps_uart);
+        DrawSpeedElements(canvas, gps_uart);
+        DrawAltitudeElements(canvas, gps_uart);
+        DrawSatelliteElements(canvas, gps_uart);
+        DrawLastFixElements(canvas, gps_uart);
     } else {
         char buffer[64];
         canvas_set_font(canvas, FontPrimary);
@@ -227,7 +465,8 @@ int32_t gps_app(void* p) {
         return 255;
     }
 
-    setup_canvas_coordinates();
+    SetupCanvasElements();
+    gps_uart->Icon = icon_animation_alloc(&A_Sub1ghz_14);
 
     // set system callbacks
     ViewPort* view_port = view_port_alloc();
@@ -297,6 +536,9 @@ int32_t gps_app(void* p) {
                         break;
                     case InputKeyBack:
                         processing = false;
+                        break;
+                    case InputKeyDown:
+                        IncrementCoordinateSystem();
                         break;
                     default:
                         break;
