@@ -7,7 +7,7 @@ struct CanvasElement {
 
     int y;
 
-    const char* str;
+    char* str;
 } LatitudeHeaderElement, LongitudeHeaderElement, CourseHeaderElement, SpeedHeaderElement,
     AltitudeHeaderElement, SatellitesHeaderElement, LastFixHeaderElement, LatitudeValueElement,
     LongitudeValueElement, CourseValueElement, SpeedValueElement, AltitudeValueElement,

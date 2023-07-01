@@ -1,6 +1,6 @@
 #include "gps_uart.h"
 #include "gps.h"
-#include "LatLong-UTMconversion.h"
+#include "UTM.h"
 #include <assets_icons.h>
 #include <gps_nmea_icons.h>
 
@@ -122,8 +122,6 @@ void DrawUTMCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart) {
     // Values
     canvas_set_font(canvas, FontSecondary);
 
-    char buffer[64];
-
     if(isnan(gps_uart->status.latitude) || isnan(gps_uart->status.longitude)) {
         UTMZoneValueElement.str = "00";
         UTMNorthingValueElement.str = "0000000";
@@ -134,11 +132,13 @@ void DrawUTMCoordinatesElements(Canvas* const canvas, GpsUart* gps_uart) {
 
         UTMZoneValueElement.str = &utm.Zone;
 
-        snprintf(buffer, 64, "%i", (int)(utm.Northing));
-        UTMNorthingValueElement.str = buffer;
+        char NorthingBuffer[64];
+        snprintf(NorthingBuffer, 64, "%i", (int)(utm.Northing));
+        UTMNorthingValueElement.str = NorthingBuffer;
 
-        snprintf(buffer, 64, "%i", (int)(utm.Easting));
-        UTMEastingValueElement.str = buffer;
+        char EastingBuffer[64];
+        snprintf(EastingBuffer, 64, "%i", (int)(utm.Easting));
+        UTMEastingValueElement.str = EastingBuffer;
     }
 
     canvas_draw_str_aligned(
