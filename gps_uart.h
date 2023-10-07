@@ -2,6 +2,7 @@
 
 #include <furi_hal.h>
 #include <notification/notification_messages.h>
+#include <minmea.h>
 
 #define RX_BUF_SIZE 1024
 
@@ -18,9 +19,8 @@ typedef struct {
     char altitude_units;
     int fix_quality;
     int satellites_tracked;
-    int time_hours;
-    int time_minutes;
-    int time_seconds;
+    struct minmea_date date;
+    struct minmea_time time;
 } GpsStatus;
 
 typedef enum SpeedUnit { KNOTS, KPH, MPH, INVALID } SpeedUnit;

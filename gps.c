@@ -66,9 +66,9 @@ static void render_callback(Canvas* const canvas, void* context) {
             buffer,
             64,
             "%02d:%02d:%02d UTC",
-            gps_uart->status.time_hours,
-            gps_uart->status.time_minutes,
-            gps_uart->status.time_seconds);
+            gps_uart->status.time.hours,
+            gps_uart->status.time.minutes,
+            gps_uart->status.time.seconds);
         canvas_draw_str_aligned(canvas, 96, 62, AlignCenter, AlignBottom, buffer);
     } else {
         char buffer[64];

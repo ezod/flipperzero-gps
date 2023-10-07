@@ -1,6 +1,5 @@
 #include <string.h>
 
-#include <minmea.h>
 #include "gps_uart.h"
 
 typedef enum {
@@ -41,9 +40,8 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
             gps_uart->status.longitude = minmea_tocoord(&frame.longitude);
             gps_uart->status.speed = minmea_tofloat(&frame.speed);
             gps_uart->status.course = minmea_tofloat(&frame.course);
-            gps_uart->status.time_hours = frame.time.hours;
-            gps_uart->status.time_minutes = frame.time.minutes;
-            gps_uart->status.time_seconds = frame.time.seconds;
+            gps_uart->status.date = frame.date;
+            gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_green_10);
         }
@@ -58,9 +56,7 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
             gps_uart->status.altitude_units = frame.altitude_units;
             gps_uart->status.fix_quality = frame.fix_quality;
             gps_uart->status.satellites_tracked = frame.satellites_tracked;
-            gps_uart->status.time_hours = frame.time.hours;
-            gps_uart->status.time_minutes = frame.time.minutes;
-            gps_uart->status.time_seconds = frame.time.seconds;
+            gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_magenta_10);
         }
@@ -71,9 +67,7 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
         if(minmea_parse_gll(&frame, line)) {
             gps_uart->status.latitude = minmea_tocoord(&frame.latitude);
             gps_uart->status.longitude = minmea_tocoord(&frame.longitude);
-            gps_uart->status.time_hours = frame.time.hours;
-            gps_uart->status.time_minutes = frame.time.minutes;
-            gps_uart->status.time_seconds = frame.time.seconds;
+            gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_red_10);
         }
@@ -172,9 +166,13 @@ void gps_uart_init_thread(GpsUart* gps_uart) {
     gps_uart->status.altitude_units = ' ';
     gps_uart->status.fix_quality = 0;
     gps_uart->status.satellites_tracked = 0;
-    gps_uart->status.time_hours = 0;
-    gps_uart->status.time_minutes = 0;
-    gps_uart->status.time_seconds = 0;
+    gps_uart->status.date.year = 0;
+    gps_uart->status.date.month = 0;
+    gps_uart->status.date.day = 0;
+    gps_uart->status.time.hours = 0;
+    gps_uart->status.time.minutes = 0;
+    gps_uart->status.time.seconds = 0;
+    gps_uart->status.time.microseconds = 0;
 
     gps_uart->rx_stream = furi_stream_buffer_alloc(RX_BUF_SIZE * 5, 1);
 
