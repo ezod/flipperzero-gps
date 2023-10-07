@@ -23,7 +23,7 @@ typedef struct {
     struct minmea_time time;
 } GpsStatus;
 
-typedef enum SpeedUnit { KNOTS, KPH, MPH, INVALID } SpeedUnit;
+typedef enum { KNOTS, KPH, MPH, INVALID } SpeedUnit;
 
 typedef struct {
     FuriMutex* mutex;
