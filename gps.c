@@ -1,5 +1,6 @@
 #include "geo.h"
 #include "gps_uart.h"
+#include "gpx.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -159,6 +160,14 @@ int32_t gps_app(void* p) {
 
                         gps_uart_init_thread(gps_uart);
                         gps_uart->changing_baudrate = true;
+                        break;
+                    case InputKeyDown:
+                        if(gps_uart->gpx_recording) {
+                            gpx_stop_recording();
+                            gps_uart->gpx_recording = false;
+                        } else {
+                            gps_uart->gpx_recording = gpx_start_recording(&gps_uart->status);
+                        }
                         break;
                     case InputKeyRight:
                         gps_uart->speed_units++;

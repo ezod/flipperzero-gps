@@ -19,9 +19,16 @@ typedef struct {
     uint8_t rx_buf[RX_BUF_SIZE];
 
     NotificationApp* notifications;
+
     uint32_t baudrate;
     bool changing_baudrate;
+
+    bool gpx_recording;
+    float gpx_last_lat;
+    float gpx_last_lon;
+
     bool backlight_on;
+
     SpeedUnit speed_units;
 
     GpsStatus status;

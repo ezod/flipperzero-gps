@@ -1,6 +1,8 @@
 #include <string.h>
 
+#include "geo.h"
 #include "gps_uart.h"
+#include "gpx.h"
 
 typedef enum {
     WorkerEvtStop = (1 << 0),
@@ -31,6 +33,10 @@ static void gps_uart_serial_deinit(GpsUart* gps_uart) {
 }
 
 static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
+    furi_mutex_acquire(gps_uart->mutex, FuriWaitForever);
+
+    bool updated = false;
+
     switch(minmea_sentence_id(line, false)) {
     case MINMEA_SENTENCE_RMC: {
         struct minmea_sentence_rmc frame;
@@ -44,6 +50,7 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
             gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_green_10);
+            updated = true;
         }
     } break;
 
@@ -59,6 +66,7 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
             gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_magenta_10);
+            updated = true;
         }
     } break;
 
@@ -70,12 +78,26 @@ static void gps_uart_parse_nmea(GpsUart* gps_uart, char* line) {
             gps_uart->status.time = frame.time;
 
             notification_message_block(gps_uart->notifications, &sequence_blink_red_10);
+            updated = true;
         }
     } break;
 
     default:
         break;
     }
+
+    if(updated && gps_uart->gpx_recording &&
+       distance(
+           gps_uart->status.latitude,
+           gps_uart->status.longitude,
+           gps_uart->gpx_last_lat,
+           gps_uart->gpx_last_lon) > GPX_DISTANCE_THRESHOLD) {
+        gpx_update(&gps_uart->status);
+        gps_uart->gpx_last_lat = gps_uart->status.latitude;
+        gps_uart->gpx_last_lon = gps_uart->status.longitude;
+    }
+
+    furi_mutex_release(gps_uart->mutex);
 }
 
 static int32_t gps_uart_worker(void* context) {
@@ -201,7 +223,13 @@ GpsUart* gps_uart_enable() {
 
     gps_uart->baudrate = gps_baudrates[current_gps_baudrate];
     gps_uart->changing_baudrate = false;
+
+    gps_uart->gpx_recording = false;
+    gps_uart->gpx_last_lat = 0.0;
+    gps_uart->gpx_last_lon = 0.0;
+
     gps_uart->backlight_on = false;
+
     gps_uart->speed_units = KNOTS;
 
     gps_uart_init_thread(gps_uart);
