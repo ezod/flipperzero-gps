@@ -1,5 +1,5 @@
+#include "geo.h"
 #include "gps_uart.h"
-#include "constants.h"
 
 #include <furi.h>
 #include <gui/gui.h>
