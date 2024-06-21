@@ -57,6 +57,7 @@ the hardware setup.
 * Beitian BN-357ZF
 * Fastrax UP500
 * [mRo GPS u-Blox Neo-M8N]
+* REYAX RYS352A
 * Royaltek RBT-2100LP
 * [u-Blox NEO-6M]
 * [u-Blox NEO-7M]
